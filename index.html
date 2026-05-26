@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>交易复盘</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script>
+      window.addEventListener("error", function (event) {
+        var view = document.getElementById("view");
+        if (!view) return;
+        view.innerHTML =
+          '<section class="page"><article class="card"><h1 class="section-title">页面加载出错</h1><p class="body-copy">' +
+          String(event.message || "未知错误") +
+          "</p></article></section>";
+      });
+    </script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <section class="phone">
+        <div class="status-bar"></div>
+        <main id="view" class="view">
+          <section class="page">
+            <header class="page-head">
+              <h1>交易复盘</h1>
+              <p>正在加载本地交易日志...</p>
+            </header>
+          </section>
+        </main>
+        <nav id="tabs" class="tabs" aria-label="主导航"></nav>
+      </section>
+    </div>
+    <script src="app.js"></script>
+  </body>
+</html>
