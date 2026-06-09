@@ -172,6 +172,17 @@ button {
   border-radius: 7px;
   background: var(--soft);
   color: var(--active);
+  border: 0;
+}
+
+.stat-link {
+  cursor: pointer;
+  transition: background 160ms ease, color 160ms ease;
+}
+
+.stat-link:hover {
+  background: var(--green-bg);
+  color: var(--green);
 }
 
 .icon {
@@ -386,6 +397,77 @@ button {
   letter-spacing: 0;
 }
 
+.field-shell select {
+  appearance: none;
+  cursor: pointer;
+}
+
+.setup-hint {
+  display: grid;
+  gap: 5px;
+  border-left: 3px solid var(--green);
+  background: var(--green-bg);
+  padding: 10px 12px;
+  color: #34523d;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.setup-hint strong,
+.setup-hint span,
+.setup-hint small {
+  display: block;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.upload-box {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border: 1px dashed #aab6aa;
+  border-radius: 7px;
+  background: var(--soft);
+  color: #425548;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 750;
+}
+
+.upload-box input {
+  display: none;
+}
+
+.screenshot-preview {
+  display: grid;
+  gap: 8px;
+}
+
+.screenshot-preview img,
+.trade-screenshot {
+  width: 100%;
+  max-height: 360px;
+  object-fit: contain;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #0f1410;
+}
+
+.screenshot-preview button {
+  width: max-content;
+  border: 0;
+  background: transparent;
+  color: var(--red);
+  padding: 0;
+  font-size: 13px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
 textarea {
   min-height: 68px;
   resize: vertical;
@@ -505,6 +587,74 @@ textarea {
   color: #475569;
   font-size: 14px;
   line-height: 1.6;
+}
+
+.trade-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.trade-screenshot {
+  margin-top: 12px;
+}
+
+.stop-reminder {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  gap: 11px;
+  align-items: start;
+  border: 1px solid #f2c4a8;
+  border-left: 4px solid #c45d23;
+  border-radius: 7px;
+  background: #fff6ef;
+  padding: 14px;
+  color: #793c1b;
+}
+
+.stop-reminder strong {
+  display: block;
+  font-size: 14px;
+}
+
+.stop-reminder p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+  cursor: pointer;
+}
+
+.setting-row span,
+.setting-row strong,
+.setting-row small {
+  display: block;
+}
+
+.setting-row strong {
+  font-size: 14px;
+}
+
+.setting-row small {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.setting-toggle {
+  width: 42px;
+  height: 23px;
+  flex: 0 0 auto;
+  accent-color: var(--green);
 }
 
 .backup-actions {

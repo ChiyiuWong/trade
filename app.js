@@ -170,6 +170,9 @@ const state = {
   direction: "Long",
   contextType: "窄通道",
   entrySignal: "有入场信号K",
+  discipline: "合规",
+  pendingScreenshot: "",
+  settings: loadSettings(),
   editingId: null,
   query: "",
   trades: loadTrades()
@@ -218,13 +221,31 @@ function saveCustomAccounts() {
   }
 }
 
+function loadSettings() {
+  try {
+    const stored = window.localStorage.getItem("trading-journal-settings");
+    return stored ? JSON.parse(stored) : { stopAfterTwoLosses: true, stopAfterTwoViolations: true };
+  } catch {
+    return { stopAfterTwoLosses: true, stopAfterTwoViolations: true };
+  }
+}
+
+function saveSettings() {
+  try {
+    window.localStorage.setItem("trading-journal-settings", JSON.stringify(state.settings));
+  } catch {
+    // Settings remain available for this session if local storage is blocked.
+  }
+}
+
 function exportBackup() {
   const backup = {
     app: "trading-journal",
     version: 1,
     exportedAt: new Date().toISOString(),
     trades: state.trades,
-    customAccounts: state.customAccounts
+    customAccounts: state.customAccounts,
+    settings: state.settings
   };
   downloadTextFile(`trading-journal-backup-${backup.exportedAt.slice(0, 10)}.json`, JSON.stringify(backup, null, 2), "application/json");
 }
@@ -245,6 +266,8 @@ function exportCsv() {
     "出场",
     "R倍数",
     "实际盈亏",
+    "纪律",
+    "纪律说明",
     "备注"
   ];
   const rows = state.trades.map(trade => [
@@ -262,6 +285,8 @@ function exportCsv() {
     trade.exit,
     trade.r,
     getTradePnl(trade),
+    trade.discipline,
+    trade.disciplineNote,
     trade.note || trade.mistake || trade.lesson || ""
   ]);
   const csv = [headers, ...rows].map(row => row.map(csvCell).join(",")).join("\n");
@@ -299,14 +324,17 @@ function importBackupText() {
 function restoreBackupData(parsed) {
   const trades = Array.isArray(parsed) ? parsed : parsed.trades;
   const customAccounts = Array.isArray(parsed.customAccounts) ? parsed.customAccounts : [];
+  const settings = parsed.settings && typeof parsed.settings === "object" ? parsed.settings : state.settings;
   if (!Array.isArray(trades)) throw new Error("备份文件里没有交易记录");
   const shouldImport = window.confirm(`将导入 ${trades.length} 条交易记录，并覆盖当前本机记录。确定继续吗？`);
   if (!shouldImport) return;
   state.trades = trades;
   state.customAccounts = customAccounts.filter(Boolean);
+  state.settings = { ...state.settings, ...settings };
   state.editingId = null;
   saveTrades();
   saveCustomAccounts();
+  saveSettings();
   state.tab = "dashboard";
   render();
   window.alert("导入完成。");
@@ -343,6 +371,8 @@ function startEditTrade(id) {
   state.direction = trade.direction || state.direction;
   state.contextType = trade.contextType || state.contextType;
   state.entrySignal = trade.entrySignal || state.entrySignal;
+  state.discipline = trade.discipline || "合规";
+  state.pendingScreenshot = trade.screenshot || "";
   if (trade.account && !["LUCID 50K", "LUCID 100K", "其他"].includes(trade.account) && !state.customAccounts.includes(trade.account)) {
     state.customAccounts.push(trade.account);
     saveCustomAccounts();
@@ -363,11 +393,47 @@ function deleteTrade(id) {
   render();
 }
 
+function bindRemoveScreenshot() {
+  const button = document.getElementById("remove-screenshot");
+  if (!button) return;
+  button.addEventListener("click", () => {
+    state.pendingScreenshot = "";
+    const preview = document.getElementById("screenshot-preview");
+    if (preview) {
+      preview.innerHTML = "";
+      preview.classList.add("hidden");
+    }
+  });
+}
+
+function compressImage(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = () => {
+      const image = new Image();
+      image.onerror = reject;
+      image.onload = () => {
+        const maxSide = 1280;
+        const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(image.width * scale);
+        canvas.height = Math.round(image.height * scale);
+        const context = canvas.getContext("2d");
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", 0.72));
+      };
+      image.src = String(reader.result);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 function badge(text, tone = "") {
   return `<span class="badge ${tone}">${escapeHtml(String(text))}</span>`;
 }
 
-function statCard(icon, title, value, note) {
+function statCard(icon, title, value, note, target = "") {
   return `
     <article class="card stat">
       <div class="stat-top">
@@ -375,7 +441,9 @@ function statCard(icon, title, value, note) {
           <div class="stat-label">${title}</div>
           <div class="stat-value">${value}</div>
         </div>
-        <div class="icon-box">${icon}</div>
+        ${target
+          ? `<button class="icon-box stat-link" type="button" data-target="${target}" title="打开${title}">${icon}</button>`
+          : `<div class="icon-box">${icon}</div>`}
       </div>
       <p class="stat-note">${note}</p>
     </article>
@@ -397,11 +465,12 @@ function dashboard() {
     <section class="page">
       ${pageHead("交易复盘", "MES / MNQ · 价格行为交易日志")}
       <div class="grid-2">
-        ${statCard(icons.list, "交易次数", total, "本周期记录")}
-        ${statCard(icons.target, "胜率", `${total ? Math.round((wins / total) * 100) : 0}%`, "仅供复盘，不单独决策")}
+        ${statCard(icons.list, "交易次数", total, "本周期记录", "review")}
+        ${statCard(icons.target, "胜率", `${total ? Math.round((wins / total) * 100) : 0}%`, "仅供复盘，不单独决策", "stats")}
         ${statCard(icons.money, "累计R", `${totalR.toFixed(2)}R`, "优先看R倍数")}
         ${statCard(icons.chart, "平均R", `${avgR.toFixed(2)}R`, "衡量执行质量")}
       </div>
+      ${stopReminder()}
       <article class="card">
         <div class="card-title">
           <h2>今日复盘重点</h2>
@@ -446,6 +515,15 @@ function tradeCard(trade) {
         <div>平仓<strong>${escapeHtml(formatDateTime(trade.closeTime) || "-")}</strong></div>
       </div>
       ${trade.note ? `<p class="trade-note">${escapeHtml(trade.note)}</p>` : ""}
+      <div class="trade-flags">
+        ${badge(
+          trade.discipline === "违规"
+            ? `违规${trade.disciplineNote ? ` · ${trade.disciplineNote}` : ""}`
+            : trade.discipline === "合规" ? "纪律合规" : "纪律未标注",
+          trade.discipline === "违规" ? "red" : trade.discipline === "合规" ? "green" : "default"
+        )}
+      </div>
+      ${trade.screenshot ? `<img class="trade-screenshot" src="${escapeHtml(trade.screenshot)}" alt="交易截图" />` : ""}
       <div class="record-actions">
         <button class="secondary-action edit-trade" type="button" data-id="${trade.id}">修改</button>
         <button class="secondary-action danger-action delete-trade" type="button" data-id="${trade.id}">删除</button>
@@ -463,9 +541,12 @@ function newTrade() {
   const contextText = editingTrade ? stripContextType(editingTrade.context, editingTrade.contextType) : "";
   const pnlAmount = editingTrade ? getTradePnl(editingTrade) : "";
   const note = editingTrade ? (editingTrade.note || editingTrade.mistake || editingTrade.lesson || "") : "";
+  const selectedSetup = editingTrade ? editingTrade.setup : "";
+  const screenshot = editingTrade ? (editingTrade.screenshot || "") : state.pendingScreenshot;
   return `
     <section class="page">
       ${pageHead(editingTrade ? "修改交易" : "快速记录", editingTrade ? "调整入场与出场数据" : "只记录交易中最重要的信息")}
+      ${stopReminder()}
       <form id="trade-form" class="card form-card">
         ${accountSelector()}
         <div class="grid-2 compact-choice-grid">
@@ -475,7 +556,7 @@ function newTrade() {
         ${field("交易时间", "tradeTime", "datetime-local", tradeTime, "", icons.clock)}
         ${segmented("市场背景", "contextType", ["窄通道", "宽通道", "突破", "震荡区间"], state.contextType)}
         ${field("位置与背景", "context", "text", contextText, "如 前高、区间边界、EMA、磁铁位")}
-        ${field("Setup / 入场信号", "setup", "text", editingTrade ? editingTrade.setup : "", "如 H2、突破回调、楔形反转", icons.target)}
+        ${setupSelector(selectedSetup)}
         ${field("信号K", "signalCandle", "text", editingTrade ? editingTrade.signalCandle : "", "如 强反转棒、吞没K；没有可留空")}
         <div class="grid-3">
           ${miniField("入场价", "entry", "价格", "", editingTrade ? editingTrade.entry : "")}
@@ -487,6 +568,12 @@ function newTrade() {
           ${miniField("实际盈亏", "pnlAmount", "如 +250 / -100", "", pnlAmount)}
         </div>
         ${field("平仓时间", "closeTime", "datetime-local", closeTime, "", icons.clock)}
+        ${selectField("纪律标注", "discipline", [
+          ["合规", "合规执行"],
+          ["违规", "违规交易"]
+        ], editingTrade ? (editingTrade.discipline || "合规") : state.discipline)}
+        ${field("纪律说明", "disciplineNote", "text", editingTrade ? (editingTrade.disciplineNote || "") : "", "如 追单、提前入场、移动止损；合规可留空")}
+        ${screenshotField(screenshot)}
         ${field("简短备注", "note", "textarea", note, "为什么进场、为什么出场，或需要改进的一点")}
         <button class="primary" type="submit">${editingTrade ? "保存修改" : "保存交易"}</button>
         ${editingTrade ? `<button id="cancel-edit" class="secondary-action" type="button">取消修改</button>` : ""}
@@ -535,6 +622,63 @@ function field(label, name, type, value = "", placeholder = "", icon = "") {
   `;
 }
 
+function selectField(label, name, options, value) {
+  return `
+    <div class="field">
+      <label for="${name}">${label}</label>
+      <div class="field-shell">
+        <select id="${name}" name="${name}">
+          ${options.map(([optionValue, optionLabel]) => `<option value="${escapeHtml(optionValue)}" ${optionValue === value ? "selected" : ""}>${escapeHtml(optionLabel)}</option>`).join("")}
+        </select>
+      </div>
+    </div>
+  `;
+}
+
+function setupSelector(value) {
+  const selected = setupLibrary.find(setup => setup.name === value);
+  return `
+    <div class="field">
+      <label for="setup-select">Setup / 入场模式</label>
+      <div class="field-shell">
+        ${icons.target}
+        <select id="setup-select" name="setup">
+          <option value="">请选择模式</option>
+          ${setupLibrary.filter(setup => setup.quality === "核心策略").map(setup => `<option value="${escapeHtml(setup.name)}" ${setup.name === value ? "selected" : ""}>${escapeHtml(setup.name)}</option>`).join("")}
+        </select>
+      </div>
+      <div id="setup-hint" class="setup-hint ${selected ? "" : "hidden"}">
+        ${selected ? setupHintContent(selected) : ""}
+      </div>
+    </div>
+  `;
+}
+
+function setupHintContent(setup) {
+  return `
+    <strong>${escapeHtml(setup.category)}</strong>
+    <span>${escapeHtml(setup.signal)}</span>
+    <small>入场：${escapeHtml(setup.entry)}</small>
+  `;
+}
+
+function screenshotField(value) {
+  return `
+    <div class="field">
+      <label for="trade-screenshot">交易截图</label>
+      <label class="upload-box" for="trade-screenshot">
+        ${icons.camera}
+        <span>${value ? "更换截图" : "选择截图"}</span>
+        <input id="trade-screenshot" type="file" accept="image/*" />
+      </label>
+      <div id="screenshot-preview" class="screenshot-preview ${value ? "" : "hidden"}">
+        ${value ? `<img src="${escapeHtml(value)}" alt="交易截图预览" />` : ""}
+        <button id="remove-screenshot" type="button">移除截图</button>
+      </div>
+    </div>
+  `;
+}
+
 function miniField(label, name, placeholder = "价格", extra = "", value = "") {
   return `
     <div class="mini-input">
@@ -574,8 +718,10 @@ function reviewCard(trade) {
         <p><strong>信号K：</strong>${escapeHtml(trade.signalCandle || "-")}</p>
         <p><strong>入场 / 止损 / 出场：</strong>${escapeHtml(trade.entry || "-")} / ${escapeHtml(trade.stop || "-")} / ${escapeHtml(trade.exit || "-")}</p>
         <p><strong>结果：</strong>${escapeHtml(trade.r ?? "-")}R · ${escapeHtml(getTradePnl(trade) || "-")} · ${escapeHtml(formatDateTime(trade.closeTime) || "-")}</p>
+        <p><strong>纪律：</strong>${escapeHtml(trade.discipline || "未标注")}${trade.disciplineNote ? ` · ${escapeHtml(trade.disciplineNote)}` : ""}</p>
         ${trade.note ? `<p><strong>备注：</strong>${escapeHtml(trade.note)}</p>` : ""}
       </div>
+      ${trade.screenshot ? `<img class="trade-screenshot" src="${escapeHtml(trade.screenshot)}" alt="交易截图" />` : ""}
       <div class="record-actions">
         <button class="secondary-action edit-trade" type="button" data-id="${trade.id}">修改</button>
         <button class="secondary-action danger-action delete-trade" type="button" data-id="${trade.id}">删除</button>
@@ -643,6 +789,39 @@ function bestSession() {
   return best ? best[0].split(" ")[0] : "-";
 }
 
+function currentStreak(type) {
+  const ordered = [...state.trades].sort((a, b) => {
+    const aKey = a.tradeTime || a.date || a.id || "";
+    const bKey = b.tradeTime || b.date || b.id || "";
+    return String(bKey).localeCompare(String(aKey));
+  });
+  let count = 0;
+  for (const trade of ordered) {
+    const matches = type === "loss" ? Number(trade.r) < 0 : trade.discipline === "违规";
+    if (!matches) break;
+    count += 1;
+  }
+  return count;
+}
+
+function stopReminder() {
+  const lossStreak = currentStreak("loss");
+  const violationStreak = currentStreak("violation");
+  const messages = [];
+  if (state.settings.stopAfterTwoLosses && lossStreak >= 2) messages.push(`已连续 ${lossStreak} 笔亏损`);
+  if (state.settings.stopAfterTwoViolations && violationStreak >= 2) messages.push(`已连续 ${violationStreak} 笔违规`);
+  if (!messages.length) return "";
+  return `
+    <article class="stop-reminder">
+      ${icons.warn}
+      <div>
+        <strong>今日停手提醒</strong>
+        <p>${messages.join("；")}。停止开新仓，先完成复盘。</p>
+      </div>
+    </article>
+  `;
+}
+
 function backupPanel() {
   return `
     <article class="card">
@@ -681,6 +860,20 @@ function me() {
         </div>
         <p class="body-copy" style="margin-top: 0">查看价格行为策略、确认条件和入场检查清单。</p>
         <button id="open-playbook" class="primary" type="button">进入策略库</button>
+      </article>
+      <article class="card">
+        <div class="card-title">
+          <h2>风险与纪律提醒</h2>
+          ${badge("自动提醒", "green")}
+        </div>
+        <label class="setting-row">
+          <span><strong>连续 2 笔亏损停手</strong><small>达到条件后在首页和记录页显示提醒</small></span>
+          <input class="setting-toggle" type="checkbox" data-setting="stopAfterTwoLosses" ${state.settings.stopAfterTwoLosses ? "checked" : ""} />
+        </label>
+        <label class="setting-row">
+          <span><strong>连续 2 笔违规停手</strong><small>纪律标注为违规且连续两笔时提醒</small></span>
+          <input class="setting-toggle" type="checkbox" data-setting="stopAfterTwoViolations" ${state.settings.stopAfterTwoViolations ? "checked" : ""} />
+        </label>
       </article>
       ${backupPanel()}
     </section>
@@ -747,7 +940,15 @@ function render() {
 function bindEvents() {
   document.querySelectorAll("[data-tab]").forEach(button => {
     button.addEventListener("click", () => {
+      if (button.dataset.tab === "new" && !state.editingId) state.pendingScreenshot = "";
       state.tab = button.dataset.tab;
+      render();
+    });
+  });
+
+  document.querySelectorAll(".stat-link").forEach(button => {
+    button.addEventListener("click", () => {
+      state.tab = button.dataset.target;
       render();
     });
   });
@@ -757,8 +958,51 @@ function bindEvents() {
       button.addEventListener("click", () => {
         const name = group.dataset.segmented;
         state[name] = button.dataset.value;
-        render();
+        if (name === "account") {
+          render();
+          return;
+        }
+        group.querySelectorAll("button").forEach(item => item.classList.toggle("active", item === button));
+        if (name === "direction") {
+          const entryInput = document.querySelector('[name="entry"]');
+          if (entryInput) entryInput.dispatchEvent(new Event("input"));
+        }
       });
+    });
+  });
+
+  const setupSelect = document.getElementById("setup-select");
+  if (setupSelect) {
+    setupSelect.addEventListener("change", () => {
+      const hint = document.getElementById("setup-hint");
+      const setup = setupLibrary.find(item => item.name === setupSelect.value);
+      hint.innerHTML = setup ? setupHintContent(setup) : "";
+      hint.classList.toggle("hidden", !setup);
+    });
+  }
+
+  const screenshotInput = document.getElementById("trade-screenshot");
+  if (screenshotInput) {
+    screenshotInput.addEventListener("change", async event => {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      try {
+        state.pendingScreenshot = await compressImage(file);
+        const preview = document.getElementById("screenshot-preview");
+        preview.innerHTML = `<img src="${state.pendingScreenshot}" alt="交易截图预览" /><button id="remove-screenshot" type="button">移除截图</button>`;
+        preview.classList.remove("hidden");
+        bindRemoveScreenshot();
+      } catch {
+        window.alert("截图读取失败，请换一张图片重试。");
+      }
+    });
+  }
+  bindRemoveScreenshot();
+
+  document.querySelectorAll(".setting-toggle").forEach(toggle => {
+    toggle.addEventListener("change", () => {
+      state.settings[toggle.dataset.setting] = toggle.checked;
+      saveSettings();
     });
   });
 
@@ -886,6 +1130,9 @@ function bindEvents() {
         stop: data.stop,
         exit: data.exit,
         pnlAmount: data.pnlAmount,
+        discipline: data.discipline || "合规",
+        disciplineNote: data.disciplineNote || "",
+        screenshot: state.pendingScreenshot || "",
         contracts: 1,
         r,
         result: `${r > 0 ? "+" : ""}${r.toFixed(2)}R`,
@@ -896,6 +1143,7 @@ function bindEvents() {
         : [trade, ...state.trades];
       saveTrades();
       state.editingId = null;
+      state.pendingScreenshot = "";
       state.tab = "dashboard";
       render();
     });
