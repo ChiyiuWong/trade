@@ -43,256 +43,104 @@ const sampleTrades = [
 
 const setupLibrary = [
   {
-    name: "流动性扫盘 + 结构突破 / Liquidity Sweep + Break of Structure (LS+BOS)",
-    category: "流动性反转",
-    quality: "高优先级",
-    rule: "扫前高/前低后快速收回，随后形成结构突破，等待回踩或FVG再入场。",
-    checklist: ["明确前高/前低", "扫流动性后收回", "出现BOS/CHOCH", "RR >= 1.5", "不在重大新闻前入场"]
+    name: "主要趋势反转 / Major Trend Reversal (MTR)",
+    category: "趋势反转",
+    quality: "核心策略",
+    signal: "强趋势后突破趋势线，回测趋势极值；出现强反转棒，收盘靠近高点或低点。",
+    entry: "突破信号棒极值 1 tick 入场。",
+    stop: "信号棒另一端极值。",
+    target: "1:1 或 2:1 盈亏比，或下一个磁铁位。",
+    note: "新趋势的潜在开始。初学者胜率约 40%，必须搭配合理盈亏比。"
   },
   {
-    name: "趋势回调 / Trend Pullback (TPB)",
+    name: "二次入场 / High 2 & Low 2 (H2/L2)",
     category: "趋势延续",
-    quality: "高优先级",
-    rule: "顺大级别趋势，等待回踩关键位、均衡区或订单块后出现小级别确认。",
-    checklist: ["高低点结构清晰", "回踩到关键区域", "小级别反转确认", "止损在结构外", "目标至少到前高/前低"]
+    quality: "核心策略",
+    signal: "强趋势中的两腿回调（ABC 修正）；第二条修正腿结束时出现趋势信号棒。",
+    entry: "H2 突破前一棒高点做多；L2 跌破前一棒低点做空。",
+    stop: "信号棒极值外。",
+    target: "趋势恢复后的等量移动（MM）或前高/前低。",
+    note: "强趋势中最可靠的顺势模型；H2/L2 代表空头或多头第二次尝试失败。"
   },
   {
-    name: "区间边界拒绝 / Range Rejection (RRJ)",
-    category: "区间交易",
-    quality: "中优先级",
-    rule: "震荡区间上沿做空、下沿做多，必须看到拒绝和收盘确认。",
-    checklist: ["区间边界清楚", "出现假突破/拒绝", "确认K线收盘", "避免中间位置入场", "目标先看区间中轴"]
+    name: "楔形反转 / Wedge Reversal (Wedge)",
+    category: "趋势反转",
+    quality: "核心策略",
+    signal: "收敛通道中出现三次推进，第三次推进后形成反转棒。",
+    entry: "突破反转信号棒。",
+    stop: "楔形顶点或底点极值外。",
+    target: "至少两腿反向移动，或回到楔形起点。",
+    note: "三次推进通常代表趋势动能衰竭；牛市通道最终多向下突破，熊市反之。"
   },
   {
-    name: "突破回踩 / Breakout Retest (BRT)",
+    name: "最终旗形 / Final Flag (FF)",
+    category: "趋势反转",
+    quality: "核心策略",
+    signal: "长期趋势末端，靠近重要支撑/阻力；出现紧凑交易区间或水平旗形。",
+    entry: "旗形反向突破并确认后入场。",
+    stop: "失败突破棒的极值外。",
+    target: "回测旗形中轴、趋势线或趋势反转目标。",
+    note: "磁铁效应会吸引价格回测；若旗形顺趋势突破失败，往往预示趋势结束。"
+  },
+  {
+    name: "突破回调 / Breakout Pullback (BO PB)",
     category: "突破延续",
-    quality: "高优先级",
-    rule: "价格有效突破关键高低点、区间边界或日内开盘区间后，不追第一根突破，等待回踩突破位并守住再入场。",
-    checklist: ["突破位来自明显结构", "突破K线实体有效", "回踩不重新跌回区间", "回踩出现拒绝/小级别BOS", "止损放在回踩结构外"]
+    quality: "核心策略",
+    signal: "价格突破重要支撑/阻力或交易区间后，出现小型回测K线或反转棒。",
+    entry: "确认回测结束，价格重新向突破方向移动时。",
+    stop: "突破棒或回调信号棒极值外。",
+    target: "突破区间宽度的 1:1 等量移动。",
+    note: "高概率模型。关键不是追突破，而是等待市场确认突破真实有效。"
   },
   {
-    name: "假突破反转 / Failed Breakout (FB)",
-    category: "假突破反转",
-    quality: "高优先级",
-    rule: "价格突破关键位后无法延续，快速收回原区间，顺着失败方向入场，目标先看区间中轴或另一侧流动性。",
-    checklist: ["突破位置明显", "突破后成交/动能没有跟进", "重新收回关键位内", "反向出现强实体或BOS", "避免在区间中间追单"]
-  },
-  {
-    name: "开盘区间突破 / Opening Range Breakout (ORB)",
-    category: "时段策略",
-    quality: "中优先级",
-    rule: "用开盘前15-30分钟高低点作为日内初始区间，等待有效突破并回踩确认，适合NY开盘波动。",
-    checklist: ["定义开盘区间高低点", "避开第一分钟噪音", "突破后等待回踩", "确认方向和大级别一致", "当天已有巨大波动时降低仓位"]
-  },
-  {
-    name: "开盘驱动回调 / Opening Drive Pullback (ODP)",
-    category: "时段策略",
-    quality: "高优先级",
-    rule: "开盘后出现单边驱动行情，第一次健康回踩到VWAP、前结构位或FVG时，顺势寻找延续机会。",
-    checklist: ["开盘方向明确且动能强", "不是新闻瞬间乱扫", "第一次回踩优先", "回踩量能/波动收缩", "目标看前高/前低或当日极值"]
-  },
-  {
-    name: "前日高低点扫盘 / Previous Day High/Low Sweep (PDH/PDL Sweep)",
-    category: "关键流动性",
-    quality: "高优先级",
-    rule: "价格扫掉前一日高点或低点后，如果无法继续推进并快速收回，寻找反向交易，常用于NY开盘前后。",
-    checklist: ["标记PDH/PDL", "扫位后出现明显拒绝", "收回关键位内", "小周期结构转向", "目标先看日内均衡区/VWAP"]
-  },
-  {
-    name: "时段高低点扫盘 / Session High/Low Sweep (SH/SL Sweep)",
-    category: "关键流动性",
-    quality: "高优先级",
-    rule: "扫亚洲盘、伦敦盘或NY早盘高低点后，若价格回到原区间，寻找反向回归机会。",
-    checklist: ["明确时段高低点", "扫位发生在高流动性时段", "扫后没有继续单边", "收回并形成确认", "目标看时段中轴或另一侧边界"]
-  },
-  {
-    name: "等高/等低流动性猎取 / Equal Highs/Lows Raid (EQH/EQL Raid)",
-    category: "关键流动性",
-    quality: "中优先级",
-    rule: "相等高点/低点上方常聚集止损，价格扫掉后如果不能接受新价格，等待反向确认。",
-    checklist: ["至少两次触碰形成等高/等低", "扫位幅度不过大", "扫后迅速回落/回升", "入场不抢第一下", "止损放在扫点外"]
-  },
-  {
-    name: "公允价值缺口回补 / Fair Value Gap Fill (FVG Fill)",
-    category: "不平衡/FVG",
-    quality: "中优先级",
-    rule: "强动能留下FVG后，等待价格回补到不平衡区域并出现顺势拒绝，再参与原方向延续。",
-    checklist: ["FVG来自强实体推进", "大级别方向支持", "回补到50%-100%区域", "低周期出现拒绝", "FVG被完全穿透则放弃"]
-  },
-  {
-    name: "公允价值缺口反转 / Fair Value Gap Inversion (IFVG)",
-    category: "不平衡/FVG",
-    quality: "中优先级",
-    rule: "原本看涨/看跌FVG被有效反向穿越后，等待回踩该区域，把它当作反向压力/支撑使用。",
-    checklist: ["原FVG被实体突破", "突破后结构发生改变", "回踩FVG区域", "回踩被拒绝", "止损放在失效区域外"]
-  },
-  {
-    name: "订单块回测 / Order Block Retest (OB Retest)",
-    category: "订单块/供需",
-    quality: "中优先级",
-    rule: "强烈离开前的最后一段反向K线区域可作为订单块，价格回测时若出现确认，顺原离开方向交易。",
-    checklist: ["订单块导致明显位移", "最好伴随BOS", "回测前未被多次消耗", "入场有小周期确认", "不要把每根反向K都当订单块"]
-  },
-  {
-    name: "破坏块 / Breaker Block (BB)",
-    category: "订单块/供需",
-    quality: "中优先级",
-    rule: "失败的订单块被价格击穿后，常会在回踩时转化为反向支撑/压力，适合结构反转后使用。",
-    checklist: ["先有明确订单块", "该区域被实体击穿", "结构方向已改变", "回踩区域出现拒绝", "避免在大级别强支撑前追空"]
-  },
-  {
-    name: "缓解块 / Mitigation Block (MB)",
-    category: "订单块/供需",
-    quality: "中优先级",
-    rule: "价格回到尚未被缓解的机构参与区域后，若仍维持原结构方向，可寻找继续推动行情。",
-    checklist: ["区域未被充分回测", "回测前趋势仍有效", "有明确失效点", "出现反应后再进", "同一区域反复测试则降级"]
-  },
-  {
-    name: "支撑阻力转换 / Support Resistance Flip (S/R Flip)",
-    category: "结构转换",
-    quality: "高优先级",
-    rule: "原阻力被突破后转为支撑，原支撑被跌破后转为压力，等待回踩确认而不是追突破。",
-    checklist: ["水平位被多次尊重", "突破实体清楚", "回踩守住该位", "低周期出现顺势信号", "假突破收回则放弃"]
-  },
-  {
-    name: "市场结构转移 / Market Structure Shift (MSS)",
-    category: "结构反转",
-    quality: "高优先级",
-    rule: "在关键流动性或高低位附近，价格打破最近一段反向结构，说明短线控制权切换，可等待回踩入场。",
-    checklist: ["发生在关键位置", "先有扫流动性或明显拒绝", "突破最近结构点", "回踩不破新结构", "不要在无位置优势处硬做MSS"]
-  },
-  {
-    name: "性质改变反转 / Change of Character Reversal (CHOCH)",
-    category: "结构反转",
-    quality: "中优先级",
-    rule: "趋势末端首次改变高低点排列，视为潜在反转预警，需等待二次确认或回踩再入场。",
-    checklist: ["原趋势已接近关键目标", "出现动能衰竭", "首次打破内部结构", "等待回踩确认", "没有二次确认则小仓或放弃"]
-  },
-  {
-    name: "结构突破延续 / Break of Structure Continuation (BOS-C)",
+    name: "楔形旗形 / Wedge Flag (WF)",
     category: "趋势延续",
-    quality: "高优先级",
-    rule: "趋势中价格持续打破同方向结构，回踩前结构点、FVG或订单块时寻找延续。",
-    checklist: ["高高低高或低低高低清晰", "BOS实体有效", "回踩幅度健康", "没有扫反向大级别流动性", "目标看下一结构点"]
+    quality: "核心策略",
+    signal: "趋势中的三腿回调（High 3 / Low 3），形成倾斜的收敛旗形。",
+    entry: "第三腿结束并出现反转信号时。",
+    stop: "信号棒极值外。",
+    target: "顺趋势方向的磁铁位或前高/前低。",
+    note: "复合型回调，比简单 H2/L2 更有韧性，但必须顺大级别趋势。"
   },
   {
-    name: "更高低点/更低高点延续 / Higher Low / Lower High Continuation (HL/LH)",
-    category: "趋势延续",
-    quality: "高优先级",
-    rule: "上升趋势做更高低点，下降趋势做更低高点，等待低周期拒绝后顺势进入。",
-    checklist: ["大级别趋势明确", "回踩未破趋势关键低/高", "出现吞没/针脚/小BOS", "止损在HL/LH外", "不要在第三第四次追末端"]
-  },
-  {
-    name: "趋势线突破回踩 / Trendline Break Retest (TLB)",
-    category: "趋势线",
-    quality: "中优先级",
-    rule: "趋势线被有效突破后，等待回踩趋势线或最近结构，确认后做反向或趋势加速段。",
-    checklist: ["趋势线至少连接两到三点", "突破有实体和动能", "回踩不重新回到趋势线内", "结合水平位更可靠", "单独趋势线不作为唯一理由"]
-  },
-  {
-    name: "通道边界拒绝 / Channel Boundary Rejection (CBR)",
-    category: "通道/区间",
-    quality: "中优先级",
-    rule: "在上升/下降通道边界出现拒绝时，顺通道方向或做边界回归，目标先看中线。",
-    checklist: ["通道边界清楚", "至少两次有效反应", "触边后出现拒绝K", "中线/另一边界有空间", "突破通道后停止反向"]
-  },
-  {
-    name: "区间极值回归均值 / Range Extremes to Mean (REM)",
+    name: "交易区间反转 / Trading Range Reversal (TRR)",
     category: "区间交易",
-    quality: "中优先级",
-    rule: "震荡行情只在区间上沿/下沿交易，入场后第一目标放在区间中轴，不在中间位置开仓。",
-    checklist: ["区间至少两次上沿两次下沿", "ADX/波动显示无趋势", "只在边界交易", "确认拒绝后入场", "中轴减仓或保护利润"]
+    quality: "核心策略",
+    signal: "市场横盘震荡；区间边界出现真实测试、假突破或失败突破棒。",
+    entry: "边界反转触发时低买高卖。",
+    stop: "区间边界外侧。",
+    target: "先看区间中轴，再看区间另一端。",
+    note: "默认每次突破都可能失败。核心是寻找失望的多头或空头，不在区间中部入场。"
   },
   {
-    name: "压缩后区间扩张 / Range Expansion After Compression (REC)",
-    category: "突破延续",
-    quality: "中优先级",
-    rule: "长时间窄幅压缩后，等待价格带量突破压缩区间并回踩确认，参与波动扩张。",
-    checklist: ["压缩时间足够长", "高低点逐渐收窄", "突破方向有实体", "回踩不回压缩区", "假突破时快速止损"]
+    name: "开盘反转 / Opening Reversal (OR)",
+    category: "开盘策略",
+    quality: "核心策略",
+    signal: "开盘前一小时常见剧烈波动；缺口回踩 EMA、昨日高低点后出现第一波冲刺失败。",
+    entry: "第一波冲刺失败后的反转信号。",
+    stop: "信号棒极值外。",
+    target: "当天潜在趋势极值、VWAP 或另一重要磁铁位。",
+    note: "用于捕捉全天趋势，但不要接开盘第一下；等待失败和反转得到确认。"
   },
   {
-    name: "内包K突破 / Inside Bar Breakout (IBB)",
-    category: "K线结构",
-    quality: "中优先级",
-    rule: "母K线后出现内包K，代表短暂压缩；顺大级别方向突破内包结构时入场，失效在母K另一侧。",
-    checklist: ["母K线范围清晰", "内包K完全在母K内", "方向顺趋势或关键位", "突破后不立刻收回", "避免在无波动时段使用"]
+    name: "等量移动 / Measured Move (MM)",
+    category: "目标工具",
+    quality: "辅助工具",
+    signal: "出现清晰的两腿波动结构，第一腿之后形成修正旗形（AB=CD）。",
+    entry: "配合旗形突破或其他策略入场，不单独作为信号。",
+    stop: "通常放在旗形起点或原策略失效点。",
+    target: "根据第一腿高度投射第二腿目标。",
+    note: "主要用于确定止盈位置，或在目标位附近寻找趋势反转机会。"
   },
   {
-    name: "外包K/吞没K / Outside Bar / Engulfing (OBE)",
-    category: "K线结构",
-    quality: "中优先级",
-    rule: "吞没K线代表短线控制权变化，最好出现在关键位、扫流动性后或回踩确认处。",
-    checklist: ["出现在关键位置", "实体吞没更优于影线吞没", "后续不被立刻反吞", "配合结构方向", "止损放在吞没K极值外"]
-  },
-  {
-    name: "针形K拒绝 / Pin Bar Rejection (PBR)",
-    category: "K线结构",
-    quality: "低优先级",
-    rule: "长影线显示某价位被拒绝，但必须结合结构位置使用，不单独因为影线入场。",
-    checklist: ["出现在支撑/压力/流动性位", "影线扫位后收回", "实体收盘方向明确", "下一根K不否定信号", "不要在趋势中间逆势做"]
-  },
-  {
-    name: "两段式回调 / Two-Legged Pullback (2LP)",
-    category: "趋势延续",
-    quality: "中优先级",
-    rule: "强趋势中价格通常以两段回调修正，第二段衰竭并出现确认后，顺原趋势进入。",
-    checklist: ["原趋势强", "回调分成两段", "第二段动能减弱", "关键位出现拒绝", "目标看趋势延续高/低"]
-  },
-  {
-    name: "等距测量目标 / Measured Move (MM)",
-    category: "目标管理",
-    quality: "中优先级",
-    rule: "突破区间或旗形后，用前一段推动幅度投射目标，作为止盈参考而非盲目追单理由。",
-    checklist: ["已有清楚第一推动段", "中间出现整理", "突破整理后延续", "投射目标前有足够空间", "接近目标时主动保护利润"]
-  },
-  {
-    name: "缺口回补 / Gap Fill (GF)",
-    category: "缺口/回补",
-    quality: "中优先级",
-    rule: "指数期货开盘出现明显跳空时，若开盘无法延续缺口方向，寻找回补缺口的交易机会。",
-    checklist: ["确认真实跳空区域", "开盘未继续缺口方向", "价格重新进入缺口", "目标分段看50%和完全回补", "强趋势日不硬做回补"]
-  },
-  {
-    name: "VWAP收复/拒绝 / VWAP Reclaim / Reject (VWAP R/R)",
-    category: "日内均衡",
-    quality: "中优先级",
-    rule: "价格重新站上VWAP并回踩守住可做多，跌破VWAP并回踩受压可做空，适合日内方向过滤。",
-    checklist: ["VWAP和结构方向一致", "不是来回穿越的震荡日", "回踩VWAP有反应", "配合高低点结构", "目标看日内高低或标准差带"]
-  },
-  {
-    name: "新闻尖刺反向回归 / News Spike Fade (NSF)",
-    category: "事件波动",
-    quality: "低优先级",
-    rule: "重大数据发布后第一波急拉/急跌如果迅速失败并回到数据前区间，可小仓寻找反向回归。",
-    checklist: ["只在数据后等待稳定", "不接第一根剧烈波动", "确认回到发布前区间", "仓位降低", "滑点不可控时不做"]
-  },
-  {
-    name: "震荡不交易过滤 / No-Trade Chop Filter (NTC)",
-    category: "风险过滤",
-    quality: "过滤规则",
-    rule: "当价格在VWAP/区间中轴附近反复穿越、K线重叠严重、没有清楚高低点时，主动不交易。",
-    checklist: ["连续重叠K线", "无清晰结构", "突破都没有延续", "手续费和情绪成本上升", "等待价格到区间边界或重新出现趋势"]
-  },
-  {
-    name: "大级别冲突过滤 / Higher Time Frame Conflict Filter (HTF Filter)",
-    category: "风险过滤",
-    quality: "过滤规则",
-    rule: "当大级别方向、日内结构和入场周期互相冲突时，降低仓位或放弃，优先等待方向重新统一。",
-    checklist: ["日线/4H/1H方向冲突", "关键位太近", "入场周期信号逆大级别", "目标空间不足", "没有位置优势则不做"]
-  },
-  {
-    name: "流动性真空延续 / Liquidity Void Continuation (LVC)",
-    category: "动能延续",
-    quality: "中优先级",
-    rule: "价格快速穿越低成交/低阻力区域后，若回踩浅且不填满空档，通常有继续推进到下一流动性池的倾向。",
-    checklist: ["位移速度快", "中间回撤少", "前方有明显目标", "回踩浅且被买/卖回", "接近目标不再追"]
-  },
-  {
-    name: "扫损后延续 / Stop Run Continuation (SRC)",
-    category: "动能延续",
-    quality: "中优先级",
-    rule: "价格扫掉一侧流动性后并不反转，而是继续接受新价格，说明突破可能有效，等待回踩顺突破方向入场。",
-    checklist: ["扫位后没有快速收回", "关键位外持续收盘", "回踩守住扫位区域", "成交/动能延续", "不要把所有扫位都当反转"]
+    name: "磁铁位测试 / Magnet Test (MT)",
+    category: "目标工具",
+    quality: "辅助工具",
+    signal: "价格接近昨日高低点、EMA、整数关口、区间边界等重要位置时快速吸引。",
+    entry: "触及磁铁位后，必须等待明确反转信号。",
+    stop: "磁铁位外侧或反转结构失效点。",
+    target: "反弹至区间内部、均值或下一磁铁位。",
+    note: "不是独立 Setup，而是为所有交易提供获利目标和位置逻辑。"
   }
 ];
 
@@ -310,6 +158,7 @@ const icons = {
   filter: '<svg class="icon" viewBox="0 0 24 24"><path d="M3 5h18"/><path d="M6 12h12"/><path d="M10 19h4"/></svg>',
   clock: '<svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
   money: '<svg class="icon" viewBox="0 0 24 24"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6"/></svg>',
+  user: '<svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>',
   camera: '<svg class="icon" viewBox="0 0 24 24"><path d="M14.5 4l1.5 3H20a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h4l1.5-3z"/><circle cx="12" cy="13" r="3"/></svg>'
 };
 
@@ -331,7 +180,7 @@ const tabs = [
   { id: "new", label: "记录", icon: icons.plus },
   { id: "review", label: "复盘", icon: icons.list },
   { id: "stats", label: "统计", icon: icons.target },
-  { id: "me", label: "我的", icon: icons.book }
+  { id: "me", label: "我的", icon: icons.user }
 ];
 
 function loadTrades() {
@@ -388,21 +237,15 @@ function exportCsv() {
     "账户",
     "品种",
     "方向",
-    "大级别背景",
+    "市场背景",
     "Setup",
-    "入场信号K",
-    "信号K说明",
+    "信号K",
     "入场",
     "止损",
     "出场",
     "R倍数",
-    "止盈金额",
-    "止损金额",
-    "等级",
-    "情绪",
-    "错误",
-    "教训",
-    "标签"
+    "实际盈亏",
+    "备注"
   ];
   const rows = state.trades.map(trade => [
     trade.date,
@@ -413,19 +256,13 @@ function exportCsv() {
     trade.direction,
     trade.context,
     trade.setup,
-    trade.entrySignal,
     trade.signalCandle,
     trade.entry,
     trade.stop,
     trade.exit,
     trade.r,
-    trade.profitAmount,
-    trade.lossAmount,
-    trade.grade,
-    trade.emotion,
-    trade.mistake,
-    trade.lesson,
-    (trade.tags || []).join("|")
+    getTradePnl(trade),
+    trade.note || trade.mistake || trade.lesson || ""
   ]);
   const csv = [headers, ...rows].map(row => row.map(csvCell).join(",")).join("\n");
   downloadTextFile(`trading-journal-${new Date().toISOString().slice(0, 10)}.csv`, `\ufeff${csv}`, "text/csv;charset=utf-8");
@@ -592,7 +429,6 @@ function tradeCard(trade) {
             ${trade.account ? badge(trade.account, "amber") : ""}
             ${badge(trade.market, "blue")}
             ${badge(trade.direction, trade.direction === "Long" ? "green" : "red")}
-            ${badge(`Grade ${trade.grade || "-"}`, "purple")}
           </div>
           <h3 class="trade-title">${escapeHtml(trade.setup)}</h3>
           <p class="trade-meta">${escapeHtml(formatDateTime(trade.tradeTime) || trade.date || "-")}</p>
@@ -605,10 +441,11 @@ function tradeCard(trade) {
         <div>入场<strong>${escapeHtml(trade.entry || "-")}</strong></div>
         <div>止损<strong>${escapeHtml(trade.stop || "-")}</strong></div>
         <div>出场<strong>${escapeHtml(trade.exit || "-")}</strong></div>
+        <div>R倍数<strong>${escapeHtml(trade.r ?? "-")}</strong></div>
+        <div>实际盈亏<strong>${escapeHtml(getTradePnl(trade) || "-")}</strong></div>
         <div>平仓<strong>${escapeHtml(formatDateTime(trade.closeTime) || "-")}</strong></div>
-        <div>止盈金额<strong>${escapeHtml(trade.profitAmount || "-")}</strong></div>
-        <div>止损金额<strong>${escapeHtml(trade.lossAmount || "-")}</strong></div>
       </div>
+      ${trade.note ? `<p class="trade-note">${escapeHtml(trade.note)}</p>` : ""}
       <div class="record-actions">
         <button class="secondary-action edit-trade" type="button" data-id="${trade.id}">修改</button>
         <button class="secondary-action danger-action delete-trade" type="button" data-id="${trade.id}">删除</button>
@@ -618,54 +455,42 @@ function tradeCard(trade) {
 }
 
 function newTrade() {
-  const checklist = ["是否先判断大级别结构？", "是否标记前高/前低流动性？", "是否有BOS/CHOCH或拒绝确认？", "RR是否 >= 1.5？", "是否避开重大新闻窗口？"];
   const now = new Date();
   const localNow = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
   const editingTrade = getEditingTrade();
   const tradeTime = editingTrade ? normalizeDateTimeInput(editingTrade.tradeTime || editingTrade.session) : localNow;
   const closeTime = editingTrade ? normalizeDateTimeInput(editingTrade.closeTime) : localNow;
   const contextText = editingTrade ? stripContextType(editingTrade.context, editingTrade.contextType) : "";
+  const pnlAmount = editingTrade ? getTradePnl(editingTrade) : "";
+  const note = editingTrade ? (editingTrade.note || editingTrade.mistake || editingTrade.lesson || "") : "";
   return `
     <section class="page">
-      ${pageHead(editingTrade ? "修改交易" : "新增交易", editingTrade ? "调整已保存的交易记录" : "记录交易前计划、执行和盘后复盘")}
+      ${pageHead(editingTrade ? "修改交易" : "快速记录", editingTrade ? "调整入场与出场数据" : "只记录交易中最重要的信息")}
       <form id="trade-form" class="card form-card">
         ${accountSelector()}
-        ${segmented("品种", "market", ["MES", "MNQ"], state.market)}
-        ${segmented("方向", "direction", ["Long", "Short"], state.direction, { Long: `${icons.up} 做多`, Short: `${icons.down} 做空` })}
-        ${field("交易时间", "tradeTime", "datetime-local", tradeTime, "", icons.clock)}
-        ${segmented("大级别背景", "contextType", ["窄通道", "宽通道", "突破", "震荡区间"], state.contextType)}
-        ${field("关键位 / 流动性位置", "context", "textarea", contextText, "如 前高/前低、PDH/PDL、订单块、FVG、区间边界")}
-        ${field("价格行为 Setup", "setup", "text", editingTrade ? editingTrade.setup : "", "如 流动性扫盘 + BOS / FVG回补", icons.target)}
-        ${segmented("是否有入场信号K", "entrySignal", ["有入场信号K", "无入场信号K", "不确定"], state.entrySignal)}
-        ${field("入场信号K说明", "signalCandle", "text", editingTrade ? editingTrade.signalCandle : "", "如 吞没K、针形K、拒绝K、收盘确认")}
-        <div class="grid-3">
-          ${miniField("入场", "entry", "价格", "", editingTrade ? editingTrade.entry : "")}
-          ${miniField("止损", "stop", "价格", "", editingTrade ? editingTrade.stop : "")}
-          ${miniField("出场", "exit", "价格", "", editingTrade ? editingTrade.exit : "")}
+        <div class="grid-2 compact-choice-grid">
+          ${segmented("品种", "market", ["MES", "MNQ"], state.market)}
+          ${segmented("方向", "direction", ["Long", "Short"], state.direction, { Long: "做多", Short: "做空" })}
         </div>
+        ${field("交易时间", "tradeTime", "datetime-local", tradeTime, "", icons.clock)}
+        ${segmented("市场背景", "contextType", ["窄通道", "宽通道", "突破", "震荡区间"], state.contextType)}
+        ${field("位置与背景", "context", "text", contextText, "如 前高、区间边界、EMA、磁铁位")}
+        ${field("Setup / 入场信号", "setup", "text", editingTrade ? editingTrade.setup : "", "如 H2、突破回调、楔形反转", icons.target)}
+        ${field("信号K", "signalCandle", "text", editingTrade ? editingTrade.signalCandle : "", "如 强反转棒、吞没K；没有可留空")}
         <div class="grid-3">
+          ${miniField("入场价", "entry", "价格", "", editingTrade ? editingTrade.entry : "")}
+          ${miniField("止损价", "stop", "价格", "", editingTrade ? editingTrade.stop : "")}
+          ${miniField("出场价", "exit", "价格", "", editingTrade ? editingTrade.exit : "")}
+        </div>
+        <div class="grid-2">
           ${miniField("R倍数", "r", "自动计算", "readonly", editingTrade ? editingTrade.r : "")}
-          ${miniField("等级", "grade", "A", "", editingTrade ? editingTrade.grade : "")}
-          ${miniField("情绪", "emotion", "冷静", "", editingTrade ? editingTrade.emotion : "")}
+          ${miniField("实际盈亏", "pnlAmount", "如 +250 / -100", "", pnlAmount)}
         </div>
         ${field("平仓时间", "closeTime", "datetime-local", closeTime, "", icons.clock)}
-        <div class="grid-2">
-          ${miniField("止盈金额", "profitAmount", "金额", "", editingTrade ? editingTrade.profitAmount : "")}
-          ${miniField("止损金额", "lossAmount", "金额", "", editingTrade ? editingTrade.lossAmount : "")}
-        </div>
-        ${field("错误记录", "mistake", "textarea", editingTrade ? editingTrade.mistake : "", "没有错误也可以写：无明显错误")}
-        ${field("盘后教训", "lesson", "textarea", editingTrade ? editingTrade.lesson : "", "下次要重复或避免什么")}
-        ${field("标签", "tags", "text", editingTrade ? (editingTrade.tags || []).join(",") : "", "用逗号分隔，如 BOS,FVG,顺势", icons.list)}
-        ${field("截图/标注", "screenshot", "text", "", "记录截图文件名或链接", icons.camera)}
+        ${field("简短备注", "note", "textarea", note, "为什么进场、为什么出场，或需要改进的一点")}
+        <button class="primary" type="submit">${editingTrade ? "保存修改" : "保存交易"}</button>
+        ${editingTrade ? `<button id="cancel-edit" class="secondary-action" type="button">取消修改</button>` : ""}
       </form>
-      <article class="card">
-        <h2 class="section-title">入场前检查清单</h2>
-        <div class="check-list">
-          ${checklist.map(item => `<label class="check-item"><input type="checkbox" />${item}</label>`).join("")}
-        </div>
-        <button class="primary" form="trade-form" type="submit" style="margin-top: 14px">${editingTrade ? "保存修改" : "保存交易记录"}</button>
-        ${editingTrade ? `<button id="cancel-edit" class="secondary-action" type="button" style="width: 100%; margin-top: 10px">取消修改</button>` : ""}
-      </article>
     </section>
   `;
 }
@@ -722,7 +547,7 @@ function miniField(label, name, placeholder = "价格", extra = "", value = "") 
 function review() {
   const query = state.query.trim().toLowerCase();
   const filtered = state.trades.filter(trade => {
-    const haystack = [trade.account, trade.setup, trade.contextType, trade.entrySignal, trade.signalCandle, trade.mistake, trade.lesson, trade.context, ...(trade.tags || [])].join(" ").toLowerCase();
+    const haystack = [trade.account, trade.setup, trade.contextType, trade.signalCandle, trade.note, trade.context].join(" ").toLowerCase();
     return !query || haystack.includes(query);
   });
   return `
@@ -746,16 +571,10 @@ function reviewCard(trade) {
       </div>
       <div class="body-copy">
         <p><strong>背景：</strong>${escapeHtml(trade.context || "-")}</p>
-        <p><strong>入场信号K：</strong>${escapeHtml(trade.entrySignal || "-")}${trade.signalCandle ? ` · ${escapeHtml(trade.signalCandle)}` : ""}</p>
-        <p><strong>平仓：</strong>${escapeHtml(formatDateTime(trade.closeTime) || "-")} · 止盈 ${escapeHtml(trade.profitAmount || "-")} · 止损 ${escapeHtml(trade.lossAmount || "-")}</p>
-        <p><strong>错误：</strong>${escapeHtml(trade.mistake || "-")}</p>
-        <p><strong>教训：</strong>${escapeHtml(trade.lesson || "-")}</p>
-      </div>
-      <div class="score-grid">
-        <div>结构<strong>A</strong></div>
-        <div>入场<strong>${escapeHtml(trade.grade || "-")}</strong></div>
-        <div>风控<strong>A</strong></div>
-        <div>情绪<strong>${escapeHtml(trade.emotion || "-")}</strong></div>
+        <p><strong>信号K：</strong>${escapeHtml(trade.signalCandle || "-")}</p>
+        <p><strong>入场 / 止损 / 出场：</strong>${escapeHtml(trade.entry || "-")} / ${escapeHtml(trade.stop || "-")} / ${escapeHtml(trade.exit || "-")}</p>
+        <p><strong>结果：</strong>${escapeHtml(trade.r ?? "-")}R · ${escapeHtml(getTradePnl(trade) || "-")} · ${escapeHtml(formatDateTime(trade.closeTime) || "-")}</p>
+        ${trade.note ? `<p><strong>备注：</strong>${escapeHtml(trade.note)}</p>` : ""}
       </div>
       <div class="record-actions">
         <button class="secondary-action edit-trade" type="button" data-id="${trade.id}">修改</button>
@@ -872,23 +691,39 @@ function playbook() {
   return `
     <section class="page">
       <button id="back-to-me" class="back-button" type="button">返回我的</button>
-      ${pageHead("策略库", `已整理 ${setupLibrary.length} 个价格行为策略 · 把理论转化为可执行规则`)}
+      ${pageHead("策略库", `${setupLibrary.length} 个核心模型 · 背景比信号更重要`)}
+      <article class="card playbook-guide">
+        <h2 class="section-title">使用原则</h2>
+        <p class="body-copy">每次只专练一种模型。只有市场背景、信号棒和入场条件同时成立时才执行；辅助工具不单独作为入场依据。</p>
+      </article>
       ${setupLibrary.map(setup => `
         <article class="card">
           <div class="setup-head">
             <h3 class="trade-title" style="margin-top: 0">${setup.name}</h3>
             <div class="badge-row" style="justify-content: flex-end">
               ${badge(setup.category || "价格行为", "blue")}
-              ${badge(setup.quality, setup.quality === "高优先级" ? "green" : setup.quality === "过滤规则" ? "purple" : setup.quality === "低优先级" ? "red" : "amber")}
+              ${badge(setup.quality, setup.quality === "核心策略" ? "green" : "purple")}
             </div>
           </div>
-          <p class="body-copy">${setup.rule}</p>
-          <ul class="setup-list">
-            ${setup.checklist.map(item => `<li><span class="ok">${icons.check}</span><span>${item}</span></li>`).join("")}
-          </ul>
+          <dl class="setup-details">
+            ${setupDetail("视觉特征 / 信号棒", setup.signal)}
+            ${setupDetail("入场点", setup.entry)}
+            ${setupDetail("初始止损", setup.stop)}
+            ${setupDetail("获利目标 / 磁铁位", setup.target)}
+            ${setupDetail("核心逻辑与备注", setup.note)}
+          </dl>
         </article>
       `).join("")}
     </section>
+  `;
+}
+
+function setupDetail(label, value) {
+  return `
+    <div>
+      <dt>${label}</dt>
+      <dd>${value}</dd>
+    </div>
   `;
 }
 
@@ -1034,6 +869,7 @@ function bindEvents() {
       const tradeDate = data.tradeTime ? data.tradeTime.slice(0, 10) : "";
       const editingTrade = getEditingTrade();
       const trade = {
+        ...(editingTrade || {}),
         id: editingTrade ? editingTrade.id : Date.now(),
         date: tradeDate,
         tradeTime: data.tradeTime,
@@ -1045,21 +881,15 @@ function bindEvents() {
         setup: data.setup || "未命名 Setup",
         contextType: state.contextType,
         context: `${state.contextType || ""}${data.context ? `：${data.context}` : ""}`,
-        entrySignal: state.entrySignal,
         signalCandle: data.signalCandle,
         entry: data.entry,
         stop: data.stop,
         exit: data.exit,
-        profitAmount: data.profitAmount,
-        lossAmount: data.lossAmount,
+        pnlAmount: data.pnlAmount,
         contracts: 1,
         r,
         result: `${r > 0 ? "+" : ""}${r.toFixed(2)}R`,
-        grade: data.grade || "-",
-        emotion: data.emotion || "-",
-        tags: data.tags ? data.tags.split(/[,，]/).map(tag => tag.trim()).filter(Boolean) : [],
-        mistake: data.mistake || "未记录",
-        lesson: data.lesson || "未记录"
+        note: data.note || ""
       };
       state.trades = editingTrade
         ? state.trades.map(item => String(item.id) === String(editingTrade.id) ? trade : item)
@@ -1084,6 +914,15 @@ function escapeHtml(value) {
 function formatDateTime(value) {
   if (!value) return "";
   return String(value).replace("T", " ");
+}
+
+function getTradePnl(trade) {
+  if (trade.pnlAmount !== undefined && trade.pnlAmount !== null && trade.pnlAmount !== "") {
+    return trade.pnlAmount;
+  }
+  if (trade.profitAmount) return String(trade.profitAmount).startsWith("+") ? trade.profitAmount : `+${trade.profitAmount}`;
+  if (trade.lossAmount) return String(trade.lossAmount).startsWith("-") ? trade.lossAmount : `-${trade.lossAmount}`;
+  return "";
 }
 
 function normalizeDateTimeInput(value) {
